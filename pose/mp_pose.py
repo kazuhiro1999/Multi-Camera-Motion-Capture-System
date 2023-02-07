@@ -1,5 +1,5 @@
-import cv2 as cv
 import cv2
+from tools.visualization import draw_keypoints
 import numpy as np
 import mediapipe as mp
 
@@ -73,33 +73,21 @@ class PoseEstimatorMP:
         return np.array(keypoints2d)
 
 
-def draw_keypoints(image, keypoints2d, th=0.5):
-    if keypoints2d is None:
-        return image
-    debug_image = image.copy()
-    for x,y,confidence in keypoints2d:
-        if confidence > th:
-            cv.circle(debug_image, (int(x), int(y)), 2, (0, 255, 0), 1)
-    return debug_image
-
-
 if __name__ == '__main__':
-    import sys
-    import os
-    sys.path.append(os.path.join(os.path.dirname(__file__), '../'))
     from camera.camera import USB_Camera
     
-    camera = USB_Camera('cam 0')
-    camera.open(device_id=0)
+    camera = USB_Camera('cam 0', device_id=0)
+    camera.open()
 
     pose_estimator = PoseEstimatorMP()
 
     while True:
         img = camera.get_image()
+        if img is not None:
+            continue
 
         results = pose_estimator.process(img)
 
-        #debug_image = draw_keypoints(img, results.keypoints2d)
         debug_image = draw_keypoints(img, results.keypoints2d)
         cv2.imshow('image', debug_image)
          
