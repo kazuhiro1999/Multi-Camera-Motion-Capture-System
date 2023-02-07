@@ -83,7 +83,8 @@ class USB_Camera:
         # set camera setting
         if self.camera_setting.image_height == 0 and self.camera_setting.image_width == 0:
             img = self.get_image()
-            self.camera_setting.set_intrinsic(image_width=img.shape[1], image_height=img.shape[0])
+            if img is not None:
+                self.camera_setting.set_intrinsic(image_width=img.shape[1], image_height=img.shape[0])
 
     def get_image(self):
         if not self.isActive:

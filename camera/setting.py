@@ -4,7 +4,9 @@ from scipy.spatial.transform import Rotation
 
 
 class CameraSetting:
-    def __init__(self, image_width=0, image_height=0, fov=90, position=None, rotation=None):
+    DefaultPosition = np.zeros(3)
+    DefaultRotation = np.zeros(3)
+    def __init__(self, image_width=0, image_height=0, fov=90, position=DefaultPosition, rotation=DefaultRotation):
         self.image_width = image_width
         self.image_height = image_height
         self.fov = fov

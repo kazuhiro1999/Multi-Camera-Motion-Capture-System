@@ -7,7 +7,7 @@ import numpy as np
 from camera.editor import CameraEditor
 from controller import Controller
 from pose.pose3d import recover_pose_3d
-from tools.visualization import draw_keypoints
+from tools.visualization import DebugMonitor, draw_keypoints
 from pose.setting import ModelType
 from segmentation.setting import SegmentationMethod
 
@@ -21,18 +21,21 @@ class MainWindow:
         self.window = None
 
     def open(self):
+        segmentation_method = SegmentationMethod.none if self.controller.segmentation is None else self.controller.segmentation.type
+        model_type = ModelType.none if self.controller.pose_estimator is None else self.controller.pose_estimator.type
+        udp_port = self.controller.udp_server.port
         layout = [
             [sg.Menu([['Tool',['Calibrate Cameras (Auto)']]], key='-Menu-')],
             [sg.Text('Cameras')],
-            [sg.Listbox([], size=(28,4), key='-CameraList-')],
+            [sg.Listbox(self.controller.get_camera_list(), size=(28,4), key='-CameraList-')],
             [sg.Button('+ Add Camera', size=(26,1), enable_events=True, key='-Add-')],
             # 姿勢推定の設定
             [sg.Frame(title='Configuration', layout=[
-                [sg.Text('Segmentation', size=(10,1)), sg.Combo([method.name for method in SegmentationMethod], default_value=SegmentationMethod.none.name, size=(13,1), readonly=True, enable_events=True, key='-SegmentationMethod-')],
-                [sg.Text('Model Type', size=(10,1)), sg.Combo([modelType.name for modelType in ModelType], default_value=ModelType.none.name, size=(13,1), readonly=True, enable_events=True, key='-ModelType-')],
-                [sg.Text('UDP Port', size=(10,1)), sg.Input(default_text='5555', size=(15,1), key='-Port-')]])
+                [sg.Text('Segmentation', size=(10,1)), sg.Combo([method.name for method in SegmentationMethod], default_value=segmentation_method.name, size=(13,1), readonly=True, enable_events=True, key='-SegmentationMethod-')],
+                [sg.Text('Model Type', size=(10,1)), sg.Combo([modelType.name for modelType in ModelType], default_value=model_type.name, size=(13,1), readonly=True, enable_events=True, key='-ModelType-')],
+                [sg.Text('UDP Port', size=(10,1)), sg.Input(default_text=str(udp_port), size=(15,1), key='-Port-')]])
                 ], 
-            [sg.Button('Start Capture', size=(26,1), enable_events=True, key='-Start-')],
+            [sg.Button('Start Capture', size=(26,1), enable_events=True, key='-Start-')]
             ]
         self.window = sg.Window('Motion Capture System', layout=layout, finalize=True)
         self.window['-CameraList-'].bind('<Double-Button>', 'Edit-')
@@ -86,11 +89,12 @@ class MainWindow:
 
 def main():
     controller = Controller()
-    #controller.load_config(config_path)
+    controller.load_config('config.json')
     window = MainWindow(controller)
     window.open()
     
     camera_editor = CameraEditor()
+    monitor = DebugMonitor()
 
     while True:
         t = time.time()
@@ -111,19 +115,21 @@ def main():
             # 2d pose estimation
             if controller.pose_estimator is not None:
                 keypoints = controller.pose_estimator.process(input_image) 
+                proj_matrix = camera.camera_setting.get_projection_matrix()
 
-                debug_image = draw_keypoints(debug_image, keypoints)
-                keypoints2d_list.append(keypoints)
+                if keypoints is not None and proj_matrix is not None:
+                    keypoints2d_list.append(keypoints)
+                    proj_matrices.append(proj_matrix)
 
-            proj_matrix = camera.camera_setting.get_projection_matrix()
-            if proj_matrix is not None:                
-                proj_matrices.append(proj_matrix)
+                if keypoints is not None:                    
+                    debug_image = draw_keypoints(debug_image, keypoints)              
 
             cv2.imshow(camera.name, debug_image)
 
         keypoints3d = recover_pose_3d(proj_matrices, keypoints2d_list) # 3d pose estimation
         if controller.isActive:
             controller.send(t, keypoints3d)
+            monitor.add_line(t)
 
         # space calibrator
         #if calibrator.isActive:
@@ -191,11 +197,15 @@ def main():
             window.open_estimator()
         if event == '-Start-':
             window.start_capture()
+            monitor.open()
             
         if event is None:
             cv2.destroyAllWindows()
             break
 
+        monitor.update()
+
+    controller.save_config('config.json')
     return
 
 

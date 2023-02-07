@@ -27,65 +27,75 @@ class Controller:
         # for UDP Translation
         port = config['udp_port']
         self.udp_server.open(port=port)
-
+        # for segmentation
+        segmentation_method = SegmentationMethod[config['segmentation method']]
+        self.set_segmentation(segmentation_method)
+        # for pose estimation
+        model_type = ModelType[config['model type']]
+        self.set_pose_estimator(model_type)
         # for each camera
         for camera_config in config['cameras']:
             name = camera_config['name']
+            cameraType = CameraType[camera_config['type']]
             # camera info
-            if camera_config['type'] == 'm5':
+            if cameraType == CameraType.M5:
                 host = camera_config['host']
                 port = camera_config['port']
-                camera = M5_Camera(name)
-                camera.open(host, port)
-                self.cameras.append(camera)
-                print(f"{name}(m5 camera) is connecting to {host}:{port}")
-            elif camera_config['type'] == 'usb':
+                camera = M5_Camera(name, host=host, port=port)
+                ret = camera.open()
+                if ret:
+                    self.cameras.append(camera)
+            elif cameraType == CameraType.USB:
                 device_id = camera_config['device_id']
-                camera = USB_Camera(name)
-                camera.open(device_id)
-                self.cameras.append(camera)
-                print(f"{name}(usb camera) is opened at device:{device_id}")
+                camera = USB_Camera(name, device_id=device_id)
+                ret = camera.open()
+                if ret:
+                    self.cameras.append(camera)
             else:
                 camera = None
                 print(f"cannot load setting : {name}, type={camera_config['type']}")
 
             # camera settings
             if camera is not None:
-                FOV = camera_config['camera_settings']['FOV']
-                image_width = camera_config['camera_settings']['image_width']
-                image_height = camera_config['camera_settings']['image_height']
-                camera.camera_setting.set_camera_matrix(FOV=FOV, width=image_width, height=image_height)
-                position_x = camera_config['camera_settings']['position']['x']
-                position_y = camera_config['camera_settings']['position']['y']
-                position_z = camera_config['camera_settings']['position']['z']
+                FOV = camera_config['camera_setting']['FOV']
+                image_width = camera_config['camera_setting']['image_width']
+                image_height = camera_config['camera_setting']['image_height']
+                camera.camera_setting.set_intrinsic(image_width=image_width, image_height=image_height, FOV=FOV)
+                position_x = camera_config['camera_setting']['position']['x']
+                position_y = camera_config['camera_setting']['position']['y']
+                position_z = camera_config['camera_setting']['position']['z']
                 position = np.array([position_x, position_y, position_z])
-                rotation_x = camera_config['camera_settings']['rotation']['x']
-                rotation_y = camera_config['camera_settings']['rotation']['y']
-                rotation_z = camera_config['camera_settings']['rotation']['z']
+                rotation_x = camera_config['camera_setting']['rotation']['x']
+                rotation_y = camera_config['camera_setting']['rotation']['y']
+                rotation_z = camera_config['camera_setting']['rotation']['z']
                 rotation = np.array([rotation_x, rotation_y, rotation_z])
-                camera.camera_setting.set_transform(pos=position, rot=rotation)
+                camera.camera_setting.set_transform(position=position, rotation=rotation)
 
     def save_config(self, config_path):
         config = {}
         # for UDP Translation
         config['udp_port'] = self.udp_server.port
-        config['cameras'] = []
+        # for segmentation
+        config['segmentation method'] = self.segmentation.type.name if self.segmentation else SegmentationMethod.none.name
+        # for pose estimation
+        config['model type'] = self.pose_estimator.type.name if self.pose_estimator else ModelType.none.name
         # for each camera
+        config['cameras'] = []
         for camera in self.cameras:
             camera_config = {}
             camera_config['name'] = camera.name
-            camera_config['type'] = camera.type
+            camera_config['type'] = camera.type.name
             # camera info
-            if camera.type == 'm5':
+            if camera.type == CameraType.M5:
                 camera_config['host'] = camera.host
                 camera_config['port'] = camera.port
-            elif camera.type == 'usb':
+            elif camera.type == CameraType.USB:
                 camera_config['device_id'] = camera.device_id
             else:
                 pass
             # camera settings
-            camera_config['camera_settings'] = {
-                'FOV' : camera.camera_setting.FOV,
+            camera_config['camera_setting'] = {
+                'FOV' : camera.camera_setting.fov,
                 'image_width' : camera.camera_setting.image_width,
                 'image_height' : camera.camera_setting.image_height,
                 'position' : {
@@ -110,8 +120,8 @@ class Controller:
                     print(f"USB Device {params['DeviceID']} has already used")          
                     return True
             elif params['CameraType'] == _camera.type and params['CameraType'] == CameraType.M5:
-                if _camera.host == params['HostIP']:
-                    print(f"Host {params['HostIP']} has already used")
+                if _camera.host == params['Host']:
+                    print(f"Host {params['Host']} has already used")
                     return True
             else:
                 pass

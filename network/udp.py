@@ -28,3 +28,24 @@ class UDPServer:
         self.client.close()
 
 
+class UDPClient:
+    def __init__(self, host, port, timeout=1.0, buffersize=4096):
+        self.host = host
+        self.port = port
+        self.buffersize = buffersize
+        self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        self.sock.settimeout(timeout)
+        self.sock.bind((host,port))
+        print('listening...')
+
+    def listen(self):
+        try:
+            data, addr = self.sock.recvfrom(self.buffersize)
+        except socket.timeout:
+            data = None
+        return data
+    
+    def close(self):
+        self.sock.close()
+
+

@@ -86,9 +86,9 @@ if __name__ == '__main__':
         if img is not None:
             continue
 
-        results = pose_estimator.process(img)
+        keypoints2d = pose_estimator.process(img)
 
-        debug_image = draw_keypoints(img, results.keypoints2d)
+        debug_image = draw_keypoints(img, keypoints2d)
         cv2.imshow('image', debug_image)
          
         if cv2.waitKey(1) == 27:
