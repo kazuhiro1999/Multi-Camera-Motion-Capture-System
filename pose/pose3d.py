@@ -1,3 +1,11 @@
+'''
+3D pose estimation from estimated of multi-camera 2D poses
+
+function:
+    recover_pose_3d() : input 2D coordinate of each keypoints and projection matrix of the camera, output 3D coordinate of each keypoints
+'''
+
+
 import os
 os.environ['TF_CPP_MIN_LOG_LEVEL']='2'
 import tensorflow as tf

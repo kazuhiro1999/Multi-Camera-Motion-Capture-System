@@ -1,3 +1,15 @@
+'''
+Camera Object class to get image from USB camera and M5 Wi-Fi camera
+Camera instance need its name, device ID for USB Camera, Host IP Address for Wi-Fi camera
+
+function:
+    __init__(name, args*) : 
+    open() : activate camera. return success or not
+    close() : deactivate camera. 
+    get_image() : get raw image (data type is numpy.uint8). if camera cannot get image, return None
+'''
+
+
 import cv2
 import numpy as np
 import requests
@@ -21,6 +33,7 @@ class M5_Camera:
         self.url = f"http://{host}:{port}/capture"
         self.isActive = False
         self.camera_setting = CameraSetting()
+        self.segmentation = None
 
     def open(self):
         if self.isActive:
@@ -73,6 +86,7 @@ class USB_Camera:
         self.device_id = device_id
         self.isActive = False
         self.camera_setting = CameraSetting()
+        self.segmentation = None
 
     def open(self):
         if self.isActive:
@@ -85,6 +99,9 @@ class USB_Camera:
             img = self.get_image()
             if img is not None:
                 self.camera_setting.set_intrinsic(image_width=img.shape[1], image_height=img.shape[0])
+            else:
+                self.isActive = False
+        return self.isActive
 
     def get_image(self):
         if not self.isActive:
@@ -112,6 +129,7 @@ class Video:
         self.video_pat = video_path
         self.isActive = False
         self.camera_setting = CameraSetting()
+        self.segmentation = None
 
     def open(self):
         if self.isActive:

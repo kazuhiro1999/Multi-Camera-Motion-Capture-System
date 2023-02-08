@@ -1,6 +1,23 @@
+
+'''
+Camera parameter include intrinsic and extrinsic.
+
+Variables:
+    image_width : width of the image
+    image_height : height of the image
+    fov : field of view
+    position : 3D coordinate of the camera position
+    rotation : 3D coordinate of the camera rotation (euler angles)
+
+function:
+    set_intrinsic() : set camera intrinsic parameter (image_width, image_height, fov). default=None means do not update parameter.
+    set_transform() : set cameta extrinsic parameter (position, rotation).
+    get_camera_matrix() : calculate camera_matrix (K)
+    get_projection_matrix() : calculate projection_matrix
+'''
+
 import cv2
 import numpy as np
-from scipy.spatial.transform import Rotation
 
 
 class CameraSetting:

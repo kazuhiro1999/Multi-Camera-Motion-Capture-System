@@ -1,3 +1,9 @@
+'''
+Mediapipe Model for 2D pose estimation from image
+please take care about the key-points are not same 
+'''
+
+
 import cv2
 from tools.visualization import draw_keypoints
 import numpy as np

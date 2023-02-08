@@ -1,3 +1,11 @@
+'''
+Our 2D pose estimation model (estimate pose from segmented RGB image)
+
+function:
+    process() : input RGB image, output 2D coordinate of each key-points
+'''
+
+
 import onnxruntime
 import cv2
 import numpy as np

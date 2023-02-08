@@ -1,4 +1,7 @@
 .gitignore
 *__pycache__*
-*models/*
+*/models/*
 README.md
+
+config.json
+test.py

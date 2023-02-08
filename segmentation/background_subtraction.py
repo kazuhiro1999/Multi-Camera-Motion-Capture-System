@@ -1,3 +1,17 @@
+'''
+Background subtraction program for human segmentation from image
+
+variables:
+    background : background image
+    a_min : threshold of brightness distortion between image and background (calculate at each pixel)
+    c_max : threshold of color distortion between image and background (calculate at each pixel)
+
+function:
+    set_background() : set background image
+    process() : input image, output segmented mask (1 for foreground, 0 for background)
+'''
+
+
 import cv2
 import numpy as np
 
@@ -80,8 +94,8 @@ class BackgroundSubtractor:
 
 if __name__ == '__main__':
     from camera.camera import USB_Camera
-    camera = USB_Camera()
-    camera.open(device_id=0)
+    camera = USB_Camera('cam', device_id=0)
+    camera.open()
 
     subtractor = BackgroundSubtractor()
 

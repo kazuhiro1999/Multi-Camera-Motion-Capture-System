@@ -16,7 +16,6 @@ class Controller:
     def __init__(self):
         self.isActive = False
         self.cameras = []
-        self.segmentation = None
         self.pose_estimator = None
         self.udp_server = UDPServer()
         self.keys = None
@@ -27,9 +26,6 @@ class Controller:
         # for UDP Translation
         port = config['udp_port']
         self.udp_server.open(port=port)
-        # for segmentation
-        segmentation_method = SegmentationMethod[config['segmentation method']]
-        self.set_segmentation(segmentation_method)
         # for pose estimation
         model_type = ModelType[config['model type']]
         self.set_pose_estimator(model_type)
@@ -55,8 +51,22 @@ class Controller:
                 camera = None
                 print(f"cannot load setting : {name}, type={camera_config['type']}")
 
-            # camera settings
-            if camera is not None:
+            if camera is not None:                
+                # segmentation method
+                method = SegmentationMethod[camera_config['segmentation method']]
+                if method == SegmentationMethod.none:
+                    camera.segmentation = None
+                elif method == SegmentationMethod.Subtraction:
+                    camera.segmentation = BackgroundSubtractor()
+                elif method == SegmentationMethod.Paddle:
+                    camera.segmentation = PaddleSegmentation()
+                elif method == SegmentationMethod.Mediapipe:
+                    camera.segmentation = MediaPipeSelfieSegmentation()
+                elif method == SegmentationMethod.DeepLabV3:
+                    camera.segmentation = DeepLabV3()
+                else:
+                    pass
+                # camera settings
                 FOV = camera_config['camera_setting']['FOV']
                 image_width = camera_config['camera_setting']['image_width']
                 image_height = camera_config['camera_setting']['image_height']
@@ -75,8 +85,6 @@ class Controller:
         config = {}
         # for UDP Translation
         config['udp_port'] = self.udp_server.port
-        # for segmentation
-        config['segmentation method'] = self.segmentation.type.name if self.segmentation else SegmentationMethod.none.name
         # for pose estimation
         config['model type'] = self.pose_estimator.type.name if self.pose_estimator else ModelType.none.name
         # for each camera
@@ -93,6 +101,8 @@ class Controller:
                 camera_config['device_id'] = camera.device_id
             else:
                 pass
+            # segmentation method
+            camera_config['segmentation method'] = camera.segmentation.type.name if camera.segmentation else SegmentationMethod.none.name
             # camera settings
             camera_config['camera_setting'] = {
                 'FOV' : camera.camera_setting.fov,
@@ -113,15 +123,17 @@ class Controller:
             json.dump(config, f, indent=4)
 
     # judge weather camera has already exist
-    def exists(self, params):
+    def exists(self, camera):
+        if camera is None:
+            return False
         for _camera in self.cameras:
-            if params['CameraType'] == _camera.type and params['CameraType'] == CameraType.USB:
-                if _camera.device_id == params['DeviceID']:          
-                    print(f"USB Device {params['DeviceID']} has already used")          
+            if camera.type == _camera.type and camera.type == CameraType.USB:
+                if _camera.device_id == camera.device_id:          
+                    print(f"USB Device {camera.device_id} has already used")          
                     return True
-            elif params['CameraType'] == _camera.type and params['CameraType'] == CameraType.M5:
-                if _camera.host == params['Host']:
-                    print(f"Host {params['Host']} has already used")
+            elif camera.type == _camera.type and camera.type == CameraType.M5:
+                if _camera.host == camera.host:
+                    print(f"Host {camera.host} has already used")
                     return True
             else:
                 pass
@@ -159,20 +171,6 @@ class Controller:
                 self.cameras[i] = new_camera
                 return True
         return False
-
-    def set_segmentation(self, method):        
-        if method == SegmentationMethod.Subtraction:
-            self.segmentation = BackgroundSubtractor()
-            # 背景の設定タイミング
-        elif method == SegmentationMethod.Mediapipe:
-            self.segmentation = MediaPipeSelfieSegmentation()
-        elif method == SegmentationMethod.Paddle:
-            self.segmentation = PaddleSegmentation()
-        elif method == SegmentationMethod.DeepLabV3:
-            self.segmentation = DeepLabV3()
-        else:
-            self.segmentation = None
-        return True
 
     def set_pose_estimator(self, model_type):        
         if model_type == ModelType.Mediapipe:
