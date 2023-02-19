@@ -61,7 +61,7 @@ class PoseNet:
 
     def __init__(self, model_path='pose/models/model_pose2d_mobile_rgb_sharp.onnx'):
         self.type = ModelType.Ours
-        self.session = Session(model_path, executeType='CPUExecutionProvider')
+        self.session = Session(model_path, executeType='CUDAExecutionProvider')
         self.input_size = (224,224)
 
     def process(self, image):       

@@ -13,7 +13,7 @@ class UDPServer:
         self.port = 0000
         self.isOpened = False
 
-    def open(self, host='127.0.0.1', port=5555):
+    def open(self, host='127.0.0.1', port=50000):
         self.host = host
         self.port = port
         self.client = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -24,10 +24,11 @@ class UDPServer:
             return False
         try:
             data_json = json.dumps(data)
-            self.client.sendto(data_json.encode('utf-8'), (self.host, self.port))
-            return True
+            self.client.sendto(data_json.encode('utf-8'), (self.host,self.port))
         except:
             return False
+        return True
+
 
     def close(self):
         self.client.close()
@@ -54,3 +55,10 @@ class UDPClient:
         self.sock.close()
 
 
+if __name__ == '__main__':
+
+    client = UDPServer()
+    client.open(port=50000)
+    client.send({'a':0.1})
+
+    client.close()

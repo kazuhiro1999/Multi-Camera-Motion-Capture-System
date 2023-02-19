@@ -65,7 +65,7 @@ class MainWindow:
     def start_capture(self):
         try:
             port = int(self.window['-Port-'].get())
-            self.controller.udp_server.open(port)
+            self.controller.udp_server.open(port=port)
             self.controller.isActive = True
             self.window['-Start-'].update(text=f"Started at Port:{port}", disabled=True)
             return True

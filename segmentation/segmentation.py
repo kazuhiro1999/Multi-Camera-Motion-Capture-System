@@ -11,7 +11,7 @@ class PaddleSegmentation:
 
     def __init__(self):
         self.type = SegmentationMethod.Paddle
-        self.session = Session(self.model_path, executeType='CPUExecutionProvider')
+        self.session = Session(self.model_path, executeType='CUDAExecutionProvider')
         self.input_size = (512,512)
 
     def process(self, image): 
@@ -64,7 +64,7 @@ class DeepLabV3:
         out = np.squeeze(output[0])
         out = np.argmax(out, axis=0)
         mask = np.where(out==15, 1, 0)
-        return mask[:,:,None]
+        return mask.astype(np.uint8)
 
 
 class MediaPipeSelfieSegmentation:
@@ -95,10 +95,10 @@ class Session:
 if __name__ == '__main__':
     from camera.camera import USB_Camera
 
-    camera = USB_Camera('cam 0')
-    camera.open(device_id=0)
+    camera = USB_Camera('cam 0', device_id=0)
+    camera.open()
 
-    segmentation = MediaPipeSelfieSegmentation()
+    segmentation = PaddleSegmentation()
 
     while True:
         image = camera.get_image()

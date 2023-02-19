@@ -23,6 +23,7 @@ class DebugMonitor:
         self.isActive = False
         self.window = None
         self.client = None
+        self.buffer = {}
 
     def open(self, udp_port=None):
         if udp_port is not None:
@@ -66,6 +67,14 @@ class DebugMonitor:
             return
         self.window['-OUT-'].print(text)
         return
+
+    def write(self, t, keypoints3d):
+        if keypoints3d is not None:
+            self.buffer[t] = keypoints3d.tolist()
+
+    def out(self):
+        with open('output.json', 'w') as f:
+            json.dump(self.buffer, f, indent=4)
 
     def clear(self):
         self.window['-OUT-'].update('')

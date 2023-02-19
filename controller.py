@@ -25,7 +25,7 @@ class Controller:
             config = json.load(f)
         # for UDP Translation
         port = config['udp_port']
-        self.udp_server.open(port=port)
+        self.udp_server.port=port
         # for pose estimation
         model_type = ModelType[config['model type']]
         self.set_pose_estimator(model_type)
@@ -186,14 +186,23 @@ class Controller:
 
     def send(self, timestamp, keypoints3d):
         if keypoints3d is None or self.keys is None:
+            print('None')
             return False
         data = {'timestamp': timestamp}
         for key in self.keys:
             data[key] = {
-                'x': keypoints3d[self.keys[key],0],
-                'y': keypoints3d[self.keys[key],1],
-                'z': keypoints3d[self.keys[key],2]
+                'x': float(keypoints3d[self.keys[key],0]),
+                'y': float(keypoints3d[self.keys[key],1]),
+                'z': float(keypoints3d[self.keys[key],2])
             }
-        self.udp_server.send(data)
-        return True
+        ret = self.udp_server.send(data)
+        return ret
 
+if __name__ == '__main__':
+    controller = Controller()
+    controller.udp_server.open(port=50000)
+    controller.keys = PoseEstimatorMP.KEYPOINT_DICT
+       
+    controller.send(0.1,[])
+
+    controller.udp_server.close()

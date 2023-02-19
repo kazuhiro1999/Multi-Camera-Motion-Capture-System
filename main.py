@@ -9,6 +9,7 @@ import numpy as np
 
 from core import MainWindow, edit_camera, open_camera
 from controller import Controller
+from network.udp import UDPServer
 from pose.pose3d import recover_pose_3d
 from tools.visualization import DebugMonitor, draw_keypoints
 
@@ -56,8 +57,10 @@ def main():
 
         keypoints3d = recover_pose_3d(proj_matrices, keypoints2d_list) # 3d pose estimation
         if controller.isActive:
-            controller.send(t, keypoints3d)
-            monitor.add_line(t)
+            ret = controller.send(t, keypoints3d)
+            if ret:
+                monitor.add_line(t)
+            #monitor.write(t, keypoints3d)
 
         # space calibrator
         #if calibrator.isActive:
@@ -90,7 +93,7 @@ def main():
             break
 
         monitor.update()
-
+    #monitor.out()
     controller.save_config(CONFIG_PATH)
     return
 
