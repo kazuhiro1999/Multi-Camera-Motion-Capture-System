@@ -16,7 +16,7 @@ def MoveNet():
 
 if __name__ == '__main__':
 
-    cap = cv2.VideoCapture(0)
+    cap = cv2.VideoCapture("data/0_keito_1_1.mp4")
     model = MoveNet()
     t_list = []
 

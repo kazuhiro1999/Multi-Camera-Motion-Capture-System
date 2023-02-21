@@ -4,7 +4,7 @@ import mediapipe as mp
 import time
 
 if __name__ == '__main__':
-    cap = cv2.VideoCapture(0)
+    cap = cv2.VideoCapture("data/0_keito_1_1.mp4")
     t_list = []
     with mp.solutions.holistic.Holistic(
             min_detection_confidence=0.5,

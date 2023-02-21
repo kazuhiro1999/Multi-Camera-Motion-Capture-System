@@ -6,7 +6,7 @@ import time
 from tools.preprocess import crop_or_pad
 
 class Session:
-    def __init__(self, model_path='pose/models/model_pose2d_mobile_rgb_sharp.onnx', executeType='CPUExecutionProvider'):
+    def __init__(self, model_path='pose/models/model_pose2d_mobile_rgb_sharp.onnx', executeType='CUDAExecutionProvider'):
         self.session = onnxruntime.InferenceSession(model_path, providers=[executeType])
         self.input_name = self.session.get_inputs()[0].name
         self.outputs = [output.name for output in self.session.get_outputs()]
@@ -17,7 +17,7 @@ class Session:
         return result
 
 if __name__ == '__main__':
-    cap = cv2.VideoCapture(0)
+    cap = cv2.VideoCapture("data/0_keito_1_1.mp4")
     session = Session()
     t_list = []
     while True:
@@ -37,7 +37,7 @@ if __name__ == '__main__':
         if cv2.waitKey(1) == 0:
             break
 
-        if len(t_list) > 100:
+        if len(t_list) > 1000:
             break
 
     print(np.array(t_list).mean())
