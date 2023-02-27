@@ -70,7 +70,7 @@ class Pipeline:
         self.isActive = Event()
         self.cfg = None
         self.flag = Event() # for sync
-        self.status = Manager().dict({'isActive':False})
+        self.status = Manager().dict({'isActive':False, 'isChanged':False})
         self.data = Manager().dict({'image':None, 'keypoints2d':None, 'proj_matrix':None})
         self.process = None
 
@@ -121,6 +121,11 @@ class Pipeline:
 
             flag.set()
 
+            # reload cfg if changed
+            if status['isChanged']:
+                pass
+
+            # debug
             if config['debug_image']:
                 debug_image = input_image.copy()
                 if keypoints is not None:
