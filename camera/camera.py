@@ -33,7 +33,6 @@ class M5_Camera:
         self.url = f"http://{host}:{port}/capture"
         self.isActive = False
         self.camera_setting = CameraSetting()
-        self.segmentation = None
 
     def open(self):
         if self.isActive:
@@ -86,7 +85,6 @@ class USB_Camera:
         self.device_id = device_id
         self.isActive = False
         self.camera_setting = CameraSetting()
-        self.segmentation = None
 
     def open(self):
         if self.isActive:
@@ -95,12 +93,12 @@ class USB_Camera:
         self.cap = cv2.VideoCapture(self.device_id)
         self.isActive = True
         # set camera setting
-        if self.camera_setting.image_height == 0 and self.camera_setting.image_width == 0:
-            img = self.get_image()
-            if img is not None:
-                self.camera_setting.set_intrinsic(image_width=img.shape[1], image_height=img.shape[0])
-            else:
-                self.isActive = False
+        if self.cap.isOpened():
+            width = int(self.cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+            height = int(self.cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+            self.camera_setting.set_intrinsic(image_width=width, image_height=height)
+        else:
+            self.isActive = False
         return self.isActive
 
     def get_image(self):
@@ -129,30 +127,38 @@ class Video:
         self.video_path = video_path
         self.isActive = False
         self.camera_setting = CameraSetting()
-        self.segmentation = None
+        self.image = None
 
     def open(self):
         if self.isActive:
             print(f'{self.name} has already opened')
             return True
-        self.cap = cv2.VideoCapture(self.video_path)
+        self.cap = cv2.VideoCapture(self.video_path)            
+        # set camera setting
         if self.cap.isOpened():
+            width = self.cap.get(cv2.CAP_PROP_FRAME_WIDTH)
+            height = self.cap.get(cv2.CAP_PROP_FRAME_HEIGHT)
+            self.camera_setting.set_intrinsic(image_width=width, image_height=height)
             self.isActive = True
+        else:
+            self.isActive = False
         return self.isActive
         
     def get_image(self):
         if not self.isActive:
             return None
-        try:
-            ret, frame = self.cap.read()
-            if ret:
-                return frame
-        except:
+        ret, frame = self.cap.read()
+        if ret:
+            return frame
+        else:
             return None
-        return None
 
     def close(self):
         if self.cap is not None:
             self.cap.release()
         self.isActive = False
         return True
+
+    def set_index(self, idx):
+        if self.cap is not None:
+            self.cap.set(cv2.CAP_PROP_POS_FRAMES, idx)
