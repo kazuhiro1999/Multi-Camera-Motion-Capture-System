@@ -122,7 +122,7 @@ class Controller:
         with open(config_path, 'w') as f:
             json.dump(config, f, indent=4)
 
-    # judge weather camera has already exist
+    # check device has already exist or not
     def exists(self, camera):
         if camera is None:
             return False
