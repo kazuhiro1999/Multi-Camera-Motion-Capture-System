@@ -165,15 +165,16 @@ class Pipeline:
         # プロセス間通信の設定
         manager = Manager()        
         self.cfg = manager.dict(config)
-        self.status = manager.dict({'isActive':True})
+        self.status = manager.dict({'isActive':True, 'isPlaying':True})
         self.data = manager.dict({'image':None, 'keypoints2d':None, 'proj_matrix':None})
         self.flag = Event() # 同期通信
         self.event = Event() # カメラ設定
         self.changed = Event() # 変更
+        self.reset = Event() # 動画を初めから再生
         self.end = Event()
 
         # 初期設定を開く（+ Add Camera）
-        self.process = Process(target=self.start, args=(self.cfg, self.status, self.data, self.flag, self.event, self.changed, self.end))
+        self.process = Process(target=self.start, args=(self.cfg, self.status, self.data, self.flag, self.event, self.changed, self.reset, self.end))
         self.process.start()
 
     def close(self):
@@ -182,24 +183,28 @@ class Pipeline:
         self.process.terminate()
 
     # this method loop on background
-    def start(self, config, status, data, flag, event, changed, end):
+    def start(self, config, status, data, flag, event, changed, reset, end):
         # open camera device
         camera = open_camera(config['camera'])
         # open other settings
         segmentation = open_segmentation(config['segmentation'])
         pose_estimator = open_pose_estimator(config['pose_estimation'])
-        
-        image = None
+
+        image = camera.get_image()
         keypoints = None
 
         while status['isActive']:
+            # wait until sync flag is set
             if flag.is_set():
                 continue
-            # get image from camera
-            image = camera.get_image()
+            if status['isPlaying']:
+                # get new image from camera
+                image = camera.get_image()
             if image is not None:                
                 data['image'] = image
             else:
+                flag.set()
+                cv2.waitKey(1)
                 continue
 
             # apply segmentation
@@ -234,6 +239,11 @@ class Pipeline:
                     changed.set()
                 event.clear()
 
+            if reset.is_set():
+                if camera.type == CameraType.Video:
+                    camera.set_index(0)
+                reset.clear()
+
             cv2.waitKey(1)
 
         camera.close()
@@ -253,6 +263,9 @@ class Pipeline:
         if changed:
             self.changed.clear()
         return changed
+    
+    def play(self):
+        self.status['isPlaying'] = True
    
 
 class Editor:

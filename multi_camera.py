@@ -184,7 +184,8 @@ if __name__ == '__main__':
         if event == '-ModelType-':
             print("pass")
         if event == '-Start-':
-            pass
+            for pipeline in pipelines:
+                pipeline.reset.set()
             #window.start_capture()
             
         if event is None:
