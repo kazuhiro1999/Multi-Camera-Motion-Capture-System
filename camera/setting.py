@@ -36,7 +36,7 @@ class CameraSetting:
         if image_width is not None:
             self.image_width = image_width
         if FOV is not None :
-            self.FOV = FOV
+            self.fov = FOV
     
     def get_camera_matrix(self):
         if self.image_width is None or self.image_height is None or self.fov is None:

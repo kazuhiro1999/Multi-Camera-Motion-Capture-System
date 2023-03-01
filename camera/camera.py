@@ -126,7 +126,7 @@ class Video:
     def __init__(self, name, video_path):
         self.name = name
         self.type = CameraType.Video
-        self.video_pat = video_path
+        self.video_path = video_path
         self.isActive = False
         self.camera_setting = CameraSetting()
         self.segmentation = None
@@ -148,7 +148,7 @@ class Video:
             if ret:
                 return frame
         except:
-            pass
+            return None
         return None
 
     def close(self):
