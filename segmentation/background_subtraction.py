@@ -14,6 +14,8 @@ function:
 
 import cv2
 import numpy as np
+import PySimpleGUI as sg
+sg.theme('DarkBlue')
 
 from segmentation.setting import SegmentationMethod
 from tools.preprocess import rgb_to_gray
@@ -90,6 +92,42 @@ class BackgroundSubtractor:
         mask = (mask * shadow_mask)[:,:,None]
         foreground = (image * mask).astype(np.uint8)
         return foreground
+    
+    
+def setup_subtractor(camera, subtractor):
+    layout = [
+        # 背景設定
+        [sg.Button('Shoot', size=(10,1), enable_events=True, key='-Shoot-')],
+        # 背景差分パラメータ
+        [sg.Frame(title='Subtraction Setting', layout=[
+            [sg.Text('Brightness', size=(10,1)), sg.Slider(range=(0.0,1.0), default_value=subtractor.a_min, resolution=0.01, orientation='h', enable_events=True, key='-A-')],
+            [sg.Text('Color', size=(10,1)), sg.Slider(range=(0.0,30.0), default_value=subtractor.c_max, resolution=1.0, orientation='h', enable_events=True, key='-C-')],
+        ])],
+        [sg.Button('Cancel', size=(10,1), enable_events=True, key='-Cancel-'), sg.Button('OK', size=(10,1), pad=((30,0),(0,0)), enable_events=True, key='-OK-')]
+    ]
+    window = sg.Window(title='背景差分設定', layout=layout, finalize=True)
+    while True:
+        img = camera.get_image()
+        mask = subtractor.process(img)
+        debug_image = (img * mask).astype(np.uint8)
+        cv2.imshow(camera.name, debug_image)
+
+        event, values = window.read(timeout=0)
+        if event == '-Shoot-':
+            subtractor.set_background(img)
+            cv2.imshow('background', img)
+        if event == '-A-':
+            subtractor.a_min = values['-A-']
+        if event == '-C-':
+            subtractor.c_max = values['-C-']
+        if event == '-OK-':
+            break
+        if event is None or event == '-Cancel-':
+            break
+    window.close()
+    return True
+
+
 
 
 if __name__ == '__main__':

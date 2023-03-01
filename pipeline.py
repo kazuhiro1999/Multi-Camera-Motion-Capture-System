@@ -13,7 +13,7 @@ from camera.camera import CameraType, M5_Camera, USB_Camera, Video
 from pose.mp_pose import PoseEstimatorMP
 from pose.ours import PoseNet
 from pose.setting import ModelType
-from segmentation.background_subtraction import BackgroundSubtractor
+from segmentation.background_subtraction import BackgroundSubtractor, setup_subtractor
 from segmentation.segmentation import DeepLabV3, MediaPipeSelfieSegmentation, PaddleSegmentation
 from segmentation.setting import SegmentationMethod
 from tools.visualization import draw_keypoints
@@ -386,7 +386,9 @@ def open_editor(camera, config=None, segmentation=None, pose_estimator=None):
         event, values = editor.window.read(timeout=0)
         if event == '-SegmentationMethod-':
             method = editor.get_segmentation_method()
-            segmentation = open_segmentation(method.name)
+            segmentation = open_segmentation(method.name)            
+            if method == SegmentationMethod.Subtraction:
+                setup_subtractor(camera, segmentation)
         if event == '-PoseEstimation-':
             model_type = editor.get_model_type()
             pose_estimator = open_pose_estimator(model_type.name)
