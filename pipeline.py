@@ -66,7 +66,7 @@ def open_pose_estimator(model_type):
     model_type = ModelType[model_type]
     if model_type == ModelType.Mediapipe:
         pose_estimator = PoseEstimatorMP()
-    elif model_type == ModelType.Ours:
+    elif model_type == ModelType.Humanoid:
         pose_estimator = PoseNet()
     else:
         pose_estimator = None
