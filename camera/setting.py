@@ -65,9 +65,12 @@ class CameraSetting:
         K = self.get_camera_matrix()
         if K is None or self.position is None or self.rotation is None:
             return None
-        vector = self.rotation / np.linalg.norm(self.rotation)
-        ax = (self.Forward + vector)
-        R = cv2.Rodrigues(ax/ np.linalg.norm(ax) * np.pi)[0]
+        if np.linalg.norm(self.rotation) > 0:
+            vector = self.rotation / np.linalg.norm(self.rotation)
+            ax = (self.Forward + vector)
+            R = cv2.Rodrigues(ax/ np.linalg.norm(ax) * np.pi)[0]
+        else:
+            R = np.eye(3,3)
         t = self.position.reshape([3,1])
         Rc = R.T
         tc = -R.T @ t
