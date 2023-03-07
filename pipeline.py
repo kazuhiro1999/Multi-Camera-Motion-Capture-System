@@ -72,6 +72,22 @@ def open_pose_estimator(model_type):
         pose_estimator = None
     return pose_estimator
 
+def load_camera_setting(camera, config):
+    FOV = config['FOV']
+    image_width = config['image_width']
+    image_height = config['image_height']
+    position_x = config['position']['x']    
+    position_y = config['position']['y']
+    position_z = config['position']['z']
+    position = np.array([position_x, position_y, position_z])
+    rotation_x = config['rotation']['x']  
+    rotation_y = config['rotation']['y']  
+    rotation_z = config['rotation']['z']  
+    rotation = np.array([rotation_x, rotation_y, rotation_z])
+    camera.camera_setting.set_intrinsic(FOV=FOV, image_height=image_height, image_width=image_width)
+    camera.camera_setting.set_transform(position=position, rotation=rotation)
+    return camera.camera_setting
+
 def init_config(name="", camera_type='none', device_id=0, host='', segmentation='none', pose_estimation='none', debug=True):
     config = {
         'camera':{
@@ -186,6 +202,7 @@ class Pipeline:
     def start(self, config, status, data, flag, event, changed, reset, end):
         # open camera device
         camera = open_camera(config['camera'])
+        load_camera_setting(camera, config['camera_setting'])
         # open other settings
         segmentation = open_segmentation(config['segmentation'])
         pose_estimator = open_pose_estimator(config['pose_estimation'])
@@ -216,10 +233,9 @@ class Pipeline:
             # estimate pose
             if pose_estimator is not None:
                 keypoints = pose_estimator.process(input_image) 
-                proj_matrix = camera.camera_setting.get_projection_matrix()
 
                 data['keypoints2d'] = keypoints
-                data['proj_matrix'] = proj_matrix                   
+                data['proj_matrix'] = camera.camera_setting.proj_matrix              
 
             flag.set()
 
@@ -248,6 +264,9 @@ class Pipeline:
 
         camera.close()
         end.set()
+
+    def get_config(self):
+        return self.cfg.copy()
 
     def wait(self):
         self.flag.wait()

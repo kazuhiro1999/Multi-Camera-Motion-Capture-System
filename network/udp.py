@@ -10,10 +10,12 @@ import json
 class UDPServer:
     def __init__(self):
         self.host = ""
-        self.port = 0000
+        self.port = 50000
         self.isOpened = False
 
     def open(self, host='127.0.0.1', port=50000):
+        if self.isOpened:
+            return 
         self.host = host
         self.port = port
         self.client = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -59,6 +61,7 @@ if __name__ == '__main__':
 
     client = UDPServer()
     client.open(port=50000)
-    client.send({'a':0.1})
+    ret = client.send({'a':0.1})
+    print(ret)
 
     client.close()

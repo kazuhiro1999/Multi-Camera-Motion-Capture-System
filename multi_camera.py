@@ -1,9 +1,13 @@
 import json
+import time
 import cv2
+import os
 import numpy as np
 import PySimpleGUI as sg
 from network.udp import UDPServer
 from pipeline import Pipeline, get_device_config, init_config
+from pose.mp_pose import PoseEstimatorMP
+from pose.pose3d import recover_pose_3d
 
 sg.theme("DarkBlue")
 
@@ -57,16 +61,36 @@ class Controller:
         return None
 
     def send(self, timestamp, keypoints3d):
-        if keypoints3d is None or self.keys is None:
+        if keypoints3d is None:
             return False
-        data = {'timestamp': timestamp}
-        for key in self.keys:
+        data = {"TimeStamp": timestamp}
+        keys = PoseEstimatorMP.KEYPOINT_DICT
+        for key in keys:
             data[key] = {
-                'x': keypoints3d[self.keys[key],0],
-                'y': keypoints3d[self.keys[key],1],
-                'z': keypoints3d[self.keys[key],2]
+                "x": float(keypoints3d[keys[key],0]),
+                "y": float(keypoints3d[keys[key],1]),
+                "z": float(keypoints3d[keys[key],2])
             }
-        self.udp_server.send(data)
+        ret = self.udp_server.send(data)
+        return ret
+    
+    def save(self, config_path):
+        config = {'pipelines':[]}
+        for pipeline in self.pipelines:
+            cfg = pipeline.get_config()
+            config['pipelines'].append(cfg)
+        with open(config_path, 'w') as f:
+            json.dump(config, f, indent=4)
+        return True
+
+    def load(self, config_path):
+        if not os.path.exists(config_path):
+            return False
+        with open(config_path, 'r') as f:
+            config = json.load(f)
+        for cfg in config['pipelines']:
+            pipeline = Pipeline(cfg)
+            controller.add_pipeline(pipeline)
         return True
 
 
@@ -107,7 +131,7 @@ class MainWindow:
     def start_capture(self):
         try:
             port = int(self.window['-Port-'].get())
-            self.controller.udp_server.open(port)
+            self.controller.udp_server.open(port=port)
             self.controller.isActive = True
             self.window['-Start-'].update(text=f"Started at Port:{port}", disabled=True)
             return True
@@ -126,25 +150,30 @@ class MainWindow:
 
 
 if __name__ == '__main__':
+    config_path = 'multi_camera_config.json'
     controller = Controller()
+    controller.load(config_path)
+
     window = MainWindow(controller)
     window.open()
+
     # pipeline setting
-    pipelines = []
     #config = init_config(name='usb camera 1', camera_type='USB', device_id=0)
     #pipeline1 = Pipeline(config)
     #pipelines.append(pipeline1)
+    t_start = time.time()
 
     
     while True:
+        t = time.time() - t_start
         # wait pipeline process
-        for pipeline in pipelines:
+        for pipeline in controller.pipelines:
             pipeline.wait()
 
         # read data from pipeline
         keypoints2d_list = []
         proj_matrices = []
-        for pipeline in pipelines:
+        for pipeline in controller.pipelines:
             keypoints2d = pipeline.data['keypoints2d']
             if keypoints2d is not None:
                 keypoints2d_list.append(keypoints2d)
@@ -153,12 +182,15 @@ if __name__ == '__main__':
                 proj_matrices.append(proj_matrix)
 
         # resume pipeline process
-        for pipeline in pipelines:
+        for pipeline in controller.pipelines:
             pipeline.resume()
 
         # 3d pose estimation
-        keypoints2d_list = np.array(keypoints2d_list)
-        #print(keypoints2d_list.shape)
+        keypoints3d = recover_pose_3d(proj_matrices, keypoints2d_list)
+
+        # udp communication        
+        if controller.isActive:
+            ret = controller.send(t, keypoints3d)
 
         # window
         event, values = window.window.read(timeout=0)
@@ -174,7 +206,6 @@ if __name__ == '__main__':
                 else:
                     print("pipeline opened")
                     pipeline = Pipeline(config)
-                    pipelines.append(pipeline)
                     controller.add_pipeline(pipeline)
                     window.reload_list()
                     pipeline.edit() # initial setting
@@ -184,21 +215,24 @@ if __name__ == '__main__':
         if event == '-ModelType-':
             print("pass")
         if event == '-Start-':
-            for pipeline in pipelines:
+            for pipeline in controller.pipelines:
                 pipeline.reset.set()
-            #window.start_capture()
+            t_start = time.time()
+            window.start_capture()            
             
         if event is None:
             cv2.destroyAllWindows()
             break
 
         # reload when pipeline config is changed
-        for pipeline in pipelines:
+        for pipeline in controller.pipelines:
             if pipeline.is_changed():
                 window.reload_list()
 
+    controller.save(config_path)
+
     # terminate child processes
-    for pipeline in pipelines:
+    for pipeline in controller.pipelines:
         pipeline.close()
 
     window.close()
