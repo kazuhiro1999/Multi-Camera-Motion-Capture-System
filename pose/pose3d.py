@@ -13,7 +13,7 @@ import numpy as np
 
 
 # 3次元姿勢復元
-def recover_pose_3d(proj_matrices, keypoints2d_list, th=0.5):
+def recover_pose_3d(proj_matrices, keypoints2d_list, th=0.2):
     if len(keypoints2d_list) < 2: # 3D復元には最低2視点が必要
         return None
     proj_matrices = np.array(proj_matrices)
@@ -25,11 +25,8 @@ def recover_pose_3d(proj_matrices, keypoints2d_list, th=0.5):
     for joint_i in range(n_joints):
         points = keypoints2d_list[:,joint_i,:2]
         confidences = keypoints2d_list[:,joint_i,2]
-        if np.count_nonzero(confidences > th) > 1:
-            alg_confidences = confidences / confidences.sum() + 1e-5
-            point_3d = triangulate_points_tf(proj_matrices, points, alg_confidences)
-        else:
-            point_3d = np.zeros(3)
+        alg_confidences = confidences / confidences.sum() + 1e-5
+        point_3d = triangulate_points_tf(proj_matrices, points, alg_confidences)
         keypoints3d.append(point_3d)
 
     return np.array(keypoints3d)

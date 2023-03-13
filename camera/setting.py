@@ -80,7 +80,7 @@ class CameraSetting:
 
 if __name__ == '__main__':
     camera_setting = CameraSetting()
-    camera_setting.set_intrinsic(image_height=480, image_width=640, FOV=90)
-    camera_setting.set_transform(position=[-177,100,177], rotation=[0,135,0])
+    camera_setting.set_intrinsic(image_height=360, image_width=640, FOV=90)
+    camera_setting.set_transform(position=[-1.77,1.00,1.77], rotation=[1,0,-1])
 
     print(camera_setting.get_projection_matrix())

@@ -135,12 +135,12 @@ class Video:
             return True
         self.cap = cv2.VideoCapture(self.video_path)            
         # set camera setting
-        if self.cap.isOpened():
+        try:
             width = self.cap.get(cv2.CAP_PROP_FRAME_WIDTH)
             height = self.cap.get(cv2.CAP_PROP_FRAME_HEIGHT)
             self.camera_setting.set_intrinsic(image_width=width, image_height=height)
             self.isActive = True
-        else:
+        except:
             self.isActive = False
         return self.isActive
         
@@ -148,10 +148,14 @@ class Video:
         if not self.isActive:
             return None
         ret, frame = self.cap.read()
-        if ret:
-            return frame
-        else:
+        if not ret:
             return None
+        img = frame
+        if self.camera_setting.image_width > 0 and self.camera_setting.image_height > 0:
+            img = cv2.resize(frame, dsize=(self.camera_setting.image_width, self.camera_setting.image_height))
+            return img
+        else:
+            return frame
 
     def close(self):
         if self.cap is not None:

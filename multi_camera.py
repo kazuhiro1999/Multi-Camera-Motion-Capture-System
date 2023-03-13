@@ -63,7 +63,7 @@ class Controller:
     def send(self, timestamp, keypoints3d):
         if keypoints3d is None:
             return False
-        data = {"TimeStamp": timestamp}
+        data = {"type":'MediapipePose', "TimeStamp": timestamp}
         keys = PoseEstimatorMP.KEYPOINT_DICT
         for key in keys:
             data[key] = {
@@ -162,7 +162,6 @@ if __name__ == '__main__':
     #pipeline1 = Pipeline(config)
     #pipelines.append(pipeline1)
     t_start = time.time()
-
     
     while True:
         t = time.time() - t_start
@@ -236,4 +235,3 @@ if __name__ == '__main__':
         pipeline.close()
 
     window.close()
-    
