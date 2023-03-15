@@ -31,8 +31,7 @@ def open_camera(config):
     # camera info
     if camera_type == CameraType.M5:
         host = config['host']
-        port = config['port']
-        camera = M5_Camera(name, host=host, port=port)
+        camera = M5_Camera(name, host=host)
         ret = camera.open()
     elif camera_type == CameraType.USB:
         device_id = config['device_id']
@@ -43,8 +42,9 @@ def open_camera(config):
         camera = Video(name, video_path=video_path)
         ret = camera.open()
     else:
+        ret = False
         camera = None
-    return camera
+    return ret, camera
 
 def open_segmentation(method):
     method = SegmentationMethod[method]
@@ -201,7 +201,7 @@ class Pipeline:
     # this method loop on background
     def start(self, config, status, data, flag, event, changed, reset, end):
         # open camera device
-        camera = open_camera(config['camera'])
+        ret, camera = open_camera(config['camera'])
         load_camera_setting(camera, config['camera_setting'])
         # open other settings
         segmentation = open_segmentation(config['segmentation'])

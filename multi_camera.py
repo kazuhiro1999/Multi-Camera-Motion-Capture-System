@@ -16,7 +16,7 @@ sg.theme("DarkBlue")
 def get_args():
     parser = argparse.ArgumentParser()
 
-    parser.add_argument("--config_path", type=str, default="multi_camera_config.json")
+    parser.add_argument("--config_path", type=str, default="config.json")
     args = parser.parse_args()
 
     return args
