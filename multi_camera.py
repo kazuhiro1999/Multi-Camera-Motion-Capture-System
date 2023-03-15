@@ -2,6 +2,7 @@ import json
 import time
 import cv2
 import os
+import argparse
 import numpy as np
 import PySimpleGUI as sg
 from network.udp import UDPServer
@@ -10,6 +11,15 @@ from pose.mp_pose import PoseEstimatorMP
 from pose.pose3d import recover_pose_3d
 
 sg.theme("DarkBlue")
+
+
+def get_args():
+    parser = argparse.ArgumentParser()
+
+    parser.add_argument("--config_path", type=str, default="multi_camera_config.json")
+    args = parser.parse_args()
+
+    return args
 
 
 class Controller:
@@ -150,7 +160,9 @@ class MainWindow:
 
 
 if __name__ == '__main__':
-    config_path = 'multi_camera_config.json'
+    print("process started : multi_camera.py")
+    args = get_args()
+    config_path = args.config_path
     controller = Controller()
     controller.load(config_path)
 
@@ -235,3 +247,5 @@ if __name__ == '__main__':
         pipeline.close()
 
     window.close()
+
+    print("process ended : multi_camera.py")
