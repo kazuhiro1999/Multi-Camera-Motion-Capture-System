@@ -14,7 +14,7 @@ import cv2
 import numpy as np
 import requests
 from enum import Enum
-from camera.setting import CameraSetting
+from setting import CameraSetting
 
 # カメラの種類
 class CameraType(Enum):
@@ -91,6 +91,7 @@ class USB_Camera:
             print(f'{self.name} has already opened')
             return True
         self.cap = cv2.VideoCapture(self.device_id)
+        self.cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)  
         self.isActive = True
         # set camera setting
         if self.cap.isOpened():
@@ -133,7 +134,7 @@ class Video:
         if self.isActive:
             print(f'{self.name} has already opened')
             return True
-        self.cap = cv2.VideoCapture(self.video_path)            
+        self.cap = cv2.VideoCapture(self.video_path)        
         # set camera setting
         try:
             width = self.cap.get(cv2.CAP_PROP_FRAME_WIDTH)
@@ -166,3 +167,19 @@ class Video:
     def set_index(self, idx):
         if self.cap is not None:
             self.cap.set(cv2.CAP_PROP_POS_FRAMES, idx)
+
+
+if __name__ == '__main__':
+    camera = USB_Camera(name='camera', device_id=2)
+    camera.open()
+
+    while True:
+        image = camera.get_image()
+
+        if image is not None:
+            cv2.imshow(camera.name, image)
+
+        if cv2.waitKey(1) == 27:
+            break
+
+    camera.close()
