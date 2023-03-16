@@ -9,6 +9,7 @@ from network.udp import UDPServer
 from pipeline import Pipeline, get_device_config, init_config
 from pose.mp_pose import PoseEstimatorMP
 from pose.pose3d import recover_pose_3d
+from pose.setting import ModelType
 
 sg.theme("DarkBlue")
 
@@ -64,6 +65,16 @@ class Controller:
     def get_name_list(self):
         return [pipeline.cfg['camera']['name'] for pipeline in self.pipelines]
 
+    def get_model_type(self):
+        if len(self.pipelines) == 0:
+            return ModelType.none.name
+        model_type = self.pipelines[0].cfg['pose_estimation']
+        model_type_list = [pipeline.cfg['pose_estimation'] for pipeline in self.pipelines]
+        if model_type_list.count(model_type) == len(model_type_list):
+            return model_type
+        else:
+            return ModelType.none.name
+
     def get_pipeline(self, name):
         for pipeline in self.pipelines:
             if pipeline.cfg['camera']['name'] == name:
@@ -73,7 +84,7 @@ class Controller:
     def send(self, timestamp, keypoints3d):
         if keypoints3d is None:
             return False
-        data = {"type":'MediapipePose', "TimeStamp": timestamp}
+        data = {"type":self.get_model_type(), "TimeStamp": timestamp}
         keys = PoseEstimatorMP.KEYPOINT_DICT
         for key in keys:
             data[key] = {

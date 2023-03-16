@@ -52,7 +52,7 @@ class PoseEstimatorMP:
     }
 
     def __init__(self):
-        self.type = ModelType.Mediapipe
+        self.type = ModelType.MediapipePose
         self.pose = mp_pose.Pose(
             model_complexity=1,
             enable_segmentation=False,

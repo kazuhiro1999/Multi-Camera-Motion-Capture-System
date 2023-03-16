@@ -64,7 +64,7 @@ def open_segmentation(method):
 
 def open_pose_estimator(model_type):
     model_type = ModelType[model_type]
-    if model_type == ModelType.Mediapipe:
+    if model_type == ModelType.MediapipePose:
         pose_estimator = PoseEstimatorMP()
     elif model_type == ModelType.Humanoid:
         pose_estimator = PoseNet()
@@ -205,6 +205,8 @@ class Pipeline:
         load_camera_setting(camera, config['camera_setting'])
         # open other settings
         segmentation = open_segmentation(config['segmentation'])
+        if segmentation is not None and segmentation.type == SegmentationMethod.Subtraction:
+            setup_subtractor(camera, segmentation)
         pose_estimator = open_pose_estimator(config['pose_estimation'])
 
         image = camera.get_image()
