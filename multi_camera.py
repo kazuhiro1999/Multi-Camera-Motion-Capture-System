@@ -55,9 +55,19 @@ class Controller:
         self.pipelines.append(pipeline)
         return True
 
+    def remove_pipeline(self, pipeline):
+        name = pipeline.cfg['camera']['name'] 
+        for i, _pipeline in enumerate(self.pipelines):
+            if _pipeline.cfg['camera']['name'] == name:
+                _pipeline.close()
+                self.pipelines.pop(i)
+                return True
+        return False
+
     def delete_camera(self, name):
         for i, pipeline in enumerate(self.pipelines):
             if pipeline.cfg['camera']['name'] == name:
+                pipeline.close()
                 self.pipelines.pop(i)
                 return True
         return False
@@ -124,7 +134,7 @@ class MainWindow:
     def open(self):
         udp_port = self.controller.udp_server.port
         layout = [
-            [sg.Menu([['Tool',['Calibrate Cameras (Auto)']]], key='-Menu-')],
+            [sg.Menu([['Tool',['Calibrate Cameras (Auto)', 'Open Monitor']]], key='-Menu-')],
             [sg.Text('Cameras')],
             [sg.Listbox(self.controller.get_name_list(), size=(28,4), key='-List-')],
             [sg.Button('+ Add Camera', size=(26,1), enable_events=True, key='-Add-')],
@@ -136,6 +146,7 @@ class MainWindow:
             ]
         self.window = sg.Window('Motion Capture System', layout=layout, finalize=True)
         self.window['-List-'].bind('<Double-Button>', 'Edit-')
+        self.window['-List-'].bind('<KeyRelease-Delete>', 'Delete-')
         self.isActive = True
         self.load_config()
 
@@ -234,13 +245,20 @@ if __name__ == '__main__':
         if event == '-List-Edit-':
             pipeline = window.get_selected()
             pipeline.edit()
+        if event == '-List-Delete-':   
+            pipeline = window.get_selected()         
+            controller.remove_pipeline(pipeline)
+            window.reload_list()
+            print('deleted')
         if event == '-ModelType-':
             print("pass")
         if event == '-Start-':
             for pipeline in controller.pipelines:
                 pipeline.reset.set()
             t_start = time.time()
-            window.start_capture()            
+            window.start_capture()  
+        if event == 'Open Momitor':
+            pass          
             
         if event is None:
             cv2.destroyAllWindows()

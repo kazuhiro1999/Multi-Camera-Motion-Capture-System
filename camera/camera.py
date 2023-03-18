@@ -14,7 +14,7 @@ import cv2
 import numpy as np
 import requests
 from enum import Enum
-from setting import CameraSetting
+from camera.setting import CameraSetting
 
 # カメラの種類
 class CameraType(Enum):
