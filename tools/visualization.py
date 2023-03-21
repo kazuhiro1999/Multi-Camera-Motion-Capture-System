@@ -7,13 +7,22 @@ import PySimpleGUI as sg
 
 from network.udp import UDPClient
 
-def draw_keypoints(image, keypoints2d, th=0.2):
+def draw_keypoints(image, keypoints2d, skeleton=None, th=0.2):
     if keypoints2d is None:
         return image
     debug_image = image.copy()
     for x, y, confidence in keypoints2d:
-        if confidence > th:
+        if confidence >= th:
             cv2.circle(debug_image, (int(x), int(y)), radius=1, color=(0,255,0), thickness=1)
+    if skeleton is None:
+        return debug_image
+
+    for k1,k2 in skeleton:
+        x1,y1,c1 = keypoints2d[k1]
+        x2,y2,c2 = keypoints2d[k2]
+        if c1 >= th and c2 >= th:
+            cv2.line(debug_image, (int(x1), int(y1)), (int(x2), int(y2)), color=(0,255,0), thickness=2)
+
     return debug_image
 
 
