@@ -121,7 +121,7 @@ class Controller:
             config = json.load(f)
         for cfg in config['pipelines']:
             pipeline = Pipeline(cfg)
-            controller.add_pipeline(pipeline)
+            self.add_pipeline(pipeline)
         return True
 
 

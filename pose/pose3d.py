@@ -19,7 +19,8 @@ def recover_pose_3d(proj_matrices, keypoints2d_list, th=0.2):
     proj_matrices = np.array(proj_matrices)
     keypoints2d_list = np.array(keypoints2d_list)
     n_views, n_joints, _ = keypoints2d_list.shape
-    assert proj_matrices.shape[0] == n_views
+    if proj_matrices.shape[0] != n_views:
+        return None
 
     keypoints3d = []
     for joint_i in range(n_joints):
