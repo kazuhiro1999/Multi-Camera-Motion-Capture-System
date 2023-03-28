@@ -10,6 +10,7 @@ from pipeline import Pipeline, get_device_config, init_config
 from pose.mp_pose import PoseEstimatorMP
 from pose.pose3d import recover_pose_3d
 from pose.setting import ModelType
+from tools.time_utils import TimeUtil
 
 sg.theme("DarkBlue")
 
@@ -94,14 +95,18 @@ class Controller:
     def send(self, timestamp, keypoints3d):
         if keypoints3d is None:
             return False
-        data = {"type":self.get_model_type(), "TimeStamp": timestamp}
+        data = {"Type":self.get_model_type(), "TimeStamp": timestamp, "Bones":[]}
         keys = PoseEstimatorMP.KEYPOINT_DICT
         for key in keys:
-            data[key] = {
-                "x": float(keypoints3d[keys[key],0]),
-                "y": float(keypoints3d[keys[key],1]),
-                "z": float(keypoints3d[keys[key],2])
+            bone = {
+                "Name": key,
+                "Position":{
+                    "x": float(keypoints3d[keys[key],0]),
+                    "y": float(keypoints3d[keys[key],1]),
+                    "z": float(keypoints3d[keys[key],2]),
+                }
             }
+            data['Bones'].append(bone)                
         ret = self.udp_server.send(data)
         return ret
     
@@ -190,15 +195,18 @@ if __name__ == '__main__':
 
     window = MainWindow(controller)
     window.open()
+    
+    t_next = TimeUtil.get_time()
 
     # pipeline setting
     #config = init_config(name='usb camera 1', camera_type='USB', device_id=0)
     #pipeline1 = Pipeline(config)
     #pipelines.append(pipeline1)
-    t_start = time.time()
     
     while True:
-        t = time.time() - t_start
+        # update time
+        t_now = t_next
+
         # wait pipeline process
         for pipeline in controller.pipelines:
             pipeline.wait()
@@ -218,12 +226,15 @@ if __name__ == '__main__':
         for pipeline in controller.pipelines:
             pipeline.resume()
 
+        # get time
+        t_next = TimeUtil.get_time()
+
         # 3d pose estimation
         keypoints3d = recover_pose_3d(proj_matrices, keypoints2d_list)
 
         # udp communication        
         if controller.isActive:
-            ret = controller.send(t, keypoints3d)
+            ret = controller.send(t_now, keypoints3d)
 
         # window
         event, values = window.window.read(timeout=0)

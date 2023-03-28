@@ -170,7 +170,7 @@ class Video:
 
 
 if __name__ == '__main__':
-    camera = USB_Camera(name='camera', device_id=2)
+    camera = M5_Camera(name='camera', host="192.168.11.3")
     camera.open()
 
     while True:
