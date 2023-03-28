@@ -94,11 +94,11 @@ class USB_Camera:
         self.cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)  
         self.isActive = True
         # set camera setting
-        if self.cap.isOpened():
+        try:
             width = int(self.cap.get(cv2.CAP_PROP_FRAME_WIDTH))
             height = int(self.cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
             self.camera_setting.set_intrinsic(image_width=width, image_height=height)
-        else:
+        except:
             self.isActive = False
         return self.isActive
 

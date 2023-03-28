@@ -1,5 +1,5 @@
 '''
-Mediapipe Model for 2D pose estimation from image
+Mediapipe Pose Model for 2D pose estimation from image
 please take care about the key-points are not same 
 '''
 

@@ -12,17 +12,13 @@ sg.theme('DarkBlue')
 from camera.camera import CameraType, M5_Camera, USB_Camera, Video
 from pose.mp_pose import PoseEstimatorMP
 from pose.ours import PoseNet
+from pose.mp_holistic import MediapipeHolistic
 from pose.setting import ModelType
 from segmentation.background_subtraction import BackgroundSubtractor, setup_subtractor
 from segmentation.segmentation import DeepLabV3, MediaPipeSelfieSegmentation, PaddleSegmentation
 from segmentation.setting import SegmentationMethod
 from tools.visualization import draw_keypoints
 from core import CameraEditor, edit_camera
-
-mp_holistic = mp.solutions.holistic
-mp_drawing = mp.solutions.drawing_utils
-
-video_path_list = glob.glob('data/*.mp4')
 
 
 def open_camera(config):
@@ -68,6 +64,8 @@ def open_pose_estimator(model_type):
         pose_estimator = PoseEstimatorMP()
     elif model_type == ModelType.Humanoid:
         pose_estimator = PoseNet()
+    elif model_type == ModelType.MediapipeHolistic:
+        pose_estimator = MediapipeHolistic()
     else:
         pose_estimator = None
     return pose_estimator

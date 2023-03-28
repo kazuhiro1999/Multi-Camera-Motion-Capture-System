@@ -4,5 +4,5 @@
 README.md
 
 *.json
-test.py
+test/*
 data/*
