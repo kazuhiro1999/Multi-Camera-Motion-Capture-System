@@ -5,6 +5,7 @@ import os
 import argparse
 import numpy as np
 import PySimpleGUI as sg
+from calibration import CameraCalibrator, RoomCalibrator
 from network.udp import UDPServer
 from pipeline import Pipeline, get_device_config, init_config
 from pose.mp_pose import PoseEstimatorMP
@@ -139,7 +140,7 @@ class MainWindow:
     def open(self):
         udp_port = self.controller.udp_server.port
         layout = [
-            [sg.Menu([['Tool',['Calibrate Cameras (Auto)', 'Open Monitor']]], key='-Menu-')],
+            [sg.Menu([['Tool',['Calibrate Cameras', 'Calibrate Room', 'Open Monitor']]], key='-Menu-')],
             [sg.Text('Cameras')],
             [sg.Listbox(self.controller.get_name_list(), size=(28,4), key='-List-')],
             [sg.Button('+ Add Camera', size=(26,1), enable_events=True, key='-Add-')],
@@ -195,6 +196,9 @@ if __name__ == '__main__':
 
     window = MainWindow(controller)
     window.open()
+
+    camera_calibrator = CameraCalibrator()
+    room_calibrator = RoomCalibrator()
     
     t_next = TimeUtil.get_time()
 
@@ -269,11 +273,33 @@ if __name__ == '__main__':
             t_start = time.time()
             window.start_capture()  
         if event == 'Open Momitor':
-            pass          
+            pass      
+        if event == 'Calibrate Cameras':
+            camera_settings = [] # どうやってpipelineからcamera_settingを受け渡すか
+            camera_calibrator.start_calibration(camera_settings)
+        if event == 'Calibrate Room':
+            camera_settings = [] # どうやってpipelineからcamera_settingを受け渡すか
+            room_calibrator.start_calibration(camera_settings, ModelType[controller.get_model_type()])
             
         if event is None:
             cv2.destroyAllWindows()
             break
+
+        # camera calibrator
+        if camera_calibrator.isActive:
+            camera_calibrator.add_samples(keypoints2d_list)
+            print(f"{len(camera_calibrator.samples)}/{camera_calibrator.num_samples}")
+            if camera_calibrator.is_sampled():
+                camera_calibrator.calibrate()
+                camera_calibrator.isActive = False
+
+        # room calibrator
+        if room_calibrator.isActive:
+            room_calibrator.add_samples(keypoints3d)
+            print(f"{len(room_calibrator.samples)}/{room_calibrator.num_samples}")
+            if room_calibrator.is_sampled():
+                room_calibrator.calibrate()
+                room_calibrator.isActive = False
 
         # reload when pipeline config is changed
         for pipeline in controller.pipelines:

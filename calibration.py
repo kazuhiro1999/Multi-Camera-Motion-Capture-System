@@ -11,35 +11,30 @@ class CameraCalibrator:
     def __init__(self, num_samples=100, min_confidence=0.5):
         self.camera_settings = []
         self.n_cameras = 0
-        self.pose_type = ModelType.none
         self.samples = []
         self.num_samples = num_samples
         self.min_confidence = min_confidence
         self.isActive = False
 
-    def start_calibration(self, camera_settings:list, pose_type:ModelType):
+    def start_calibration(self, camera_settings:list):
         if len(camera_settings) < 2:
             print("At least 2 cameras required to calibrate")
             return
-        if pose_type == ModelType.none:
-            print("Pose Type must be same")
-            return
         self.camera_settings = camera_settings
         self.n_cameras = len(camera_settings)
-        self.pose_type = pose_type
         self.isActive = True
 
     def add_samples(self, keypoints2d_list):
         keypoints2d_list = np.array(keypoints2d_list)
         n_views, n_joints, _ = keypoints2d_list.shape        
-        if n_views != self.n_cameras or n_joints != ModelType.get_num_of_joints(self.pose_type):
+        if n_views != self.n_cameras:
             return
         self.samples.append(keypoints2d_list)
 
     def is_sampled(self):
         return len(self.samples) > self.num_samples
     
-    def calibrate_cameras(self, base_i=0, pair_i=1):
+    def calibrate(self, base_i=0, pair_i=1):
         keypoints2d_list = np.array(self.samples)
         n_frames, n_views, n_joints, _ = keypoints2d_list.shape
         sample_points = []
@@ -51,13 +46,43 @@ class CameraCalibrator:
         sample_points = np.array(sample_points).transpose([1,0,2]) # shape:(n_views, n_points, 2)
         points3d = calibrate_cameras(self.camera_settings, sample_points, base_i, pair_i)
         return
+    
 
-    def calibrate_room(self):
-        # 現在のカメラパラメータで3次元推定
-        keypoints3d_list = []
+class RoomCalibrator:
 
+    def __init__(self, num_samples=20):
+        self.camera_settings = []
+        self.n_cameras = 0
+        self.pose_type = ModelType.none
+        self.samples = []
+        self.num_samples = num_samples
+        self.isActive = False
+
+    def start_calibration(self, camera_settings:list, pose_type:ModelType):
+        if pose_type == ModelType.none:
+            print("Pose Type must be same")
+            return
+        self.camera_settings = camera_settings
+        self.n_cameras = len(camera_settings)
+        self.pose_type = pose_type
+        self.isActive = True
+
+    def add_samples(self, keypoints3d):      
+        if keypoints3d is None:
+            return
+        if len(keypoints3d) != ModelType.get_num_of_joints(self.pose_type):
+            return
+        self.samples.append(keypoints3d)
+
+    def is_sampled(self):
+        return len(self.samples) > self.num_samples
+    
+    def calibrate(self):
+        keypoints3d_list = np.array(self.samples)
+        n_frames, n_joints, _ = keypoints3d_list.shape
         calibrate_room(self.camera_settings, keypoints3d_list, self.pose_type)
         return
+    
 
 def estimate_initial_extrinsic(pts1, pts2, K):
     # pts : (N,2)
