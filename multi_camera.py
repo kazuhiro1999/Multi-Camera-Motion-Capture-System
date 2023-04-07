@@ -5,7 +5,7 @@ import os
 import argparse
 import numpy as np
 import PySimpleGUI as sg
-from network.udp import UDPServer
+from network.udp import UDPClient, UDPServer
 from pipeline import Pipeline, get_device_config, init_config
 from pose.mp_pose import PoseEstimatorMP
 from pose.pose3d import recover_pose_3d
@@ -29,7 +29,7 @@ class Controller:
     def __init__(self):
         self.isActive = False
         self.pipelines = []
-        self.udp_server = UDPServer()
+        self.udp_client = UDPClient()
 
     # check device has already exist or not
     def exists(self, config):
@@ -107,7 +107,7 @@ class Controller:
                 }
             }
             data['Bones'].append(bone)                
-        ret = self.udp_server.send(data)
+        ret = self.udp_client.send(data)
         return ret
     
     def save(self, config_path):
@@ -137,7 +137,8 @@ class MainWindow:
         self.window = None
 
     def open(self):
-        udp_port = self.controller.udp_server.port
+        udp_host = self.controller.udp_client.host
+        udp_port = self.controller.udp_client.port
         layout = [
             [sg.Menu([['Tool',['Calibrate Cameras (Auto)', 'Open Monitor']]], key='-Menu-')],
             [sg.Text('Cameras')],
@@ -145,6 +146,7 @@ class MainWindow:
             [sg.Button('+ Add Camera', size=(26,1), enable_events=True, key='-Add-')],
             # 姿勢推定の設定
             [sg.Frame(title='Configuration', layout=[
+                [sg.Text('UDP Host', size=(10,1)), sg.Input(default_text=str(udp_host), size=(15,1), key='-Host-')],
                 [sg.Text('UDP Port', size=(10,1)), sg.Input(default_text=str(udp_port), size=(15,1), key='-Port-')]])
                 ], 
             [sg.Button('Start Capture', size=(26,1), enable_events=True, key='-Start-')]
@@ -167,8 +169,9 @@ class MainWindow:
 
     def start_capture(self):
         try:
+            host = self.window['-Host-'].get()
             port = int(self.window['-Port-'].get())
-            self.controller.udp_server.open(port=port)
+            self.controller.udp_client.open(host=host, port=port)
             self.controller.isActive = True
             self.window['-Start-'].update(text=f"Started at Port:{port}", disabled=True)
             return True
