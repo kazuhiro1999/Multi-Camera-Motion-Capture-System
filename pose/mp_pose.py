@@ -89,7 +89,7 @@ if __name__ == '__main__':
 
     while True:
         img = camera.get_image()
-        if img is not None:
+        if img is None:
             continue
 
         keypoints2d = pose_estimator.process(img)

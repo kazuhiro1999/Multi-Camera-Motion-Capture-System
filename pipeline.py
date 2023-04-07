@@ -83,7 +83,7 @@ def load_camera_setting(camera, config):
     rotation_z = config['rotation']['z']  
     rotation = np.array([rotation_x, rotation_y, rotation_z])
     camera.camera_setting.set_intrinsic(FOV=FOV, image_height=image_height, image_width=image_width)
-    camera.camera_setting.set_transform(position=position, rotation=rotation)
+    camera.camera_setting.set_transform(position=position, vector=rotation)
     return camera.camera_setting
 
 def init_config(name="", camera_type='none', device_id=0, host='', segmentation='none', pose_estimation='none', debug=True):
@@ -106,7 +106,7 @@ def init_config(name="", camera_type='none', device_id=0, host='', segmentation=
             "rotation": {
                 "x": 0.0,
                 "y": 0.0,
-                "z": 0.0
+                "z": 1.0
             }
         },
         'segmentation':segmentation,
@@ -154,9 +154,9 @@ def update_config(config, camera=None, segmentation=None, pose_estimator=None):
                     'y' : float(camera.camera_setting.position[1]),
                     'z' : float(camera.camera_setting.position[2])}, 
                 'rotation' : {
-                    'x' : float(camera.camera_setting.rotation[0]),
-                    'y' : float(camera.camera_setting.rotation[1]),
-                    'z' : float(camera.camera_setting.rotation[2])}
+                    'x' : float(camera.camera_setting.vector[0]),
+                    'y' : float(camera.camera_setting.vector[1]),
+                    'z' : float(camera.camera_setting.vector[2])}
             }
         else:
             config['camera_setting'] = {}
@@ -358,9 +358,9 @@ class Editor:
             self.window['-PositionY-'].update(value=camera_setting.position[1])
             self.window['-PositionZ-'].update(value=camera_setting.position[2])
         if camera_setting.rotation is not None:
-            self.window['-RotationX-'].update(value=camera_setting.position[0])
-            self.window['-RotationY-'].update(value=camera_setting.rotation[1])
-            self.window['-RotationZ-'].update(value=camera_setting.rotation[2])
+            self.window['-RotationX-'].update(value=camera_setting.vector[0])
+            self.window['-RotationY-'].update(value=camera_setting.vector[1])
+            self.window['-RotationZ-'].update(value=camera_setting.vector[2])
             
     def apply_camera_setting(self, camera_setting:CameraSetting):
         if camera_setting is None or not self.isActive:
@@ -375,10 +375,10 @@ class Editor:
         rot_x = float(self.window['-RotationX-'].get())
         rot_y = float(self.window['-RotationY-'].get())
         rot_z = float(self.window['-RotationZ-'].get())
-        rotation = [rot_x, rot_y, rot_z]
+        vector = [rot_x, rot_y, rot_z]
 
         camera_setting.set_intrinsic(image_width=image_width, image_height=image_height, FOV=FOV)
-        camera_setting.set_transform(position=position, rotation=rotation)
+        camera_setting.set_transform(position=position, vector=vector)
         return True
     
     def get_segmentation_method(self):
