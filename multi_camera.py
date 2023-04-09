@@ -7,7 +7,7 @@ import numpy as np
 import PySimpleGUI as sg
 from calibration import CameraCalibrator, RoomCalibrator
 from network.udp import UDPClient, UDPServer
-from pipeline import Pipeline, get_device_config, init_config
+from pipeline import Pipeline, get_camera_setting, get_camera_setting_config, get_device_config, init_config
 from pose.mp_pose import PoseEstimatorMP
 from pose.pose3d import recover_pose_3d
 from pose.setting import ModelType
@@ -279,9 +279,17 @@ if __name__ == '__main__':
             pass      
         if event == 'Calibrate Cameras':
             camera_settings = [] # どうやってpipelineからcamera_settingを受け渡すか
+            for pipeline in controller.pipelines:
+                config = pipeline.cfg['camera_setting']
+                camera_setting = get_camera_setting(config)
+                camera_settings.append(camera_setting)
             camera_calibrator.start_calibration(camera_settings)
         if event == 'Calibrate Room':
             camera_settings = [] # どうやってpipelineからcamera_settingを受け渡すか
+            for pipeline in controller.pipelines:
+                config = pipeline.cfg['camera_setting']
+                camera_setting = get_camera_setting(config)
+                camera_settings.append(camera_setting)
             room_calibrator.start_calibration(camera_settings, ModelType[controller.get_model_type()])
             
         if event is None:
@@ -294,6 +302,11 @@ if __name__ == '__main__':
             print(f"{len(camera_calibrator.samples)}/{camera_calibrator.num_samples}")
             if camera_calibrator.is_sampled():
                 camera_calibrator.calibrate()
+                # camera_settingを適用
+                for pipeline, camera_setting in zip(controller.pipelines, camera_calibrator.camera_settings):
+                    pipeline.cfg['camera_setting'] = get_camera_setting_config(camera_setting)
+                    pipeline.status['camera_setting_changed'] = True
+
                 camera_calibrator.isActive = False
 
         # room calibrator
@@ -302,6 +315,10 @@ if __name__ == '__main__':
             print(f"{len(room_calibrator.samples)}/{room_calibrator.num_samples}")
             if room_calibrator.is_sampled():
                 room_calibrator.calibrate()
+                # camera_settingを適用
+                for pipeline, camera_setting in zip(controller.pipelines, camera_calibrator.camera_settings):
+                    pipeline.cfg['camera_setting'] = get_camera_setting_config(camera_setting)
+                    pipeline.status['camera_setting_changed'] = True
                 room_calibrator.isActive = False
 
         # reload when pipeline config is changed

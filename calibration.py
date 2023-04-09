@@ -41,8 +41,9 @@ class CameraCalibrator:
         for frame_i in range(n_frames):
             for joint_i in range(n_joints):
                 points = keypoints2d_list[frame_i,:,joint_i]
-                if np.all(points[:,2] < self.min_confidence): # すべてのカメラで検出した点のみ使用
+                if np.all(points[:,2] > self.min_confidence): # すべてのカメラで検出した点のみ使用
                     sample_points.append(points[:,:2])
+        print(np.array(sample_points).shape)
         sample_points = np.array(sample_points).transpose([1,0,2]) # shape:(n_views, n_points, 2)
         points3d = calibrate_cameras(self.camera_settings, sample_points, base_i, pair_i)
         return
@@ -99,6 +100,7 @@ def calibrate_cameras(camera_setting_list, keypoints2d_list, base_i=0, pair_i=1)
     R, t = estimate_initial_extrinsic(pts1, pts2, K)
     camera_setting_list[base_i].set_transform(position=CameraSetting.DefaultPosition, rotation=CameraSetting.DefaultRotation)
     camera_setting_list[pair_i].set_transform(position=t, rotation=R)
+    print(t)
 
     points3d = cv2.triangulatePoints(
         camera_setting_list[base_i].proj_matrix,
@@ -116,6 +118,7 @@ def calibrate_cameras(camera_setting_list, keypoints2d_list, base_i=0, pair_i=1)
         Rc = cv2.Rodrigues(rc)[0]
         R = Rc.T
         t = -Rc.T @ tc
+        print(t)
         camera_setting_list[view_i].set_transform(position=t, rotation=R)
 
     return points3d

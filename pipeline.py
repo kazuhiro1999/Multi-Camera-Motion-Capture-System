@@ -70,7 +70,7 @@ def open_pose_estimator(model_type):
         pose_estimator = None
     return pose_estimator
 
-def load_camera_setting(camera, config):
+def get_camera_setting(config):
     FOV = config['FOV']
     image_width = config['image_width']
     image_height = config['image_height']
@@ -82,9 +82,28 @@ def load_camera_setting(camera, config):
     rotation_y = config['rotation']['y']  
     rotation_z = config['rotation']['z']  
     rotation = np.array([rotation_x, rotation_y, rotation_z])
-    camera.camera_setting.set_intrinsic(FOV=FOV, image_height=image_height, image_width=image_width)
-    camera.camera_setting.set_transform(position=position, vector=rotation)
-    return camera.camera_setting
+    camera_setting = CameraSetting()
+    camera_setting.set_intrinsic(FOV=FOV, image_height=image_height, image_width=image_width)
+    camera_setting.set_transform(position=position, vector=rotation)
+    return camera_setting
+
+def get_camera_setting_config(camera_setting:CameraSetting):
+    config = {
+        'FOV':camera_setting.fov,
+        'image_width':camera_setting.image_width,
+        'image_height':camera_setting.image_height,
+        'position':{
+            'x':float(camera_setting.position[0]),
+            'y':float(camera_setting.position[1]),
+            'z':float(camera_setting.position[2]),
+        },
+        'rotation':{
+            'x':float(camera_setting.vector[0]),
+            'y':float(camera_setting.vector[1]),
+            'z':float(camera_setting.vector[2]),
+        }
+    }
+    return config
 
 def init_config(name="", camera_type='none', device_id=0, host='', segmentation='none', pose_estimation='none', debug=True):
     config = {
@@ -179,7 +198,7 @@ class Pipeline:
         # プロセス間通信の設定
         manager = Manager()        
         self.cfg = manager.dict(config)
-        self.status = manager.dict({'isActive':True, 'isPlaying':True})
+        self.status = manager.dict({'isActive':True, 'isPlaying':True, 'camera_setting_changed':False})
         self.data = manager.dict({'image':None, 'keypoints2d':None, 'proj_matrix':None})
         self.flag = Event() # 同期通信
         self.event = Event() # カメラ設定
@@ -200,7 +219,7 @@ class Pipeline:
     def start(self, config, status, data, flag, event, changed, reset, end):
         # open camera device
         ret, camera = open_camera(config['camera'])
-        load_camera_setting(camera, config['camera_setting'])
+        camera.camera_setting = get_camera_setting(config['camera_setting'])
         # open other settings
         segmentation = open_segmentation(config['segmentation'])
         if segmentation is not None and segmentation.type == SegmentationMethod.Subtraction:
@@ -259,6 +278,11 @@ class Pipeline:
                 if camera.type == CameraType.Video:
                     camera.set_index(0)
                 reset.clear()
+
+            if status['camera_setting_changed']:
+                camera.camera_setting = get_camera_setting(config['camera_setting'])
+                print(camera.camera_setting.position)
+                status['camera_setting_changed'] = False
 
             cv2.waitKey(1)
 
