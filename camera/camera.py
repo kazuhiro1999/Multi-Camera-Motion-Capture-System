@@ -137,8 +137,8 @@ class Video:
         self.cap = cv2.VideoCapture(self.video_path)        
         # set camera setting
         try:
-            width = self.cap.get(cv2.CAP_PROP_FRAME_WIDTH)
-            height = self.cap.get(cv2.CAP_PROP_FRAME_HEIGHT)
+            width = int(self.cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+            height = int(self.cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
             self.camera_setting.set_intrinsic(image_width=width, image_height=height)
             self.isActive = True
         except:

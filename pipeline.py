@@ -18,7 +18,6 @@ from segmentation.background_subtraction import BackgroundSubtractor, setup_subt
 from segmentation.segmentation import DeepLabV3, MediaPipeSelfieSegmentation, PaddleSegmentation
 from segmentation.setting import SegmentationMethod
 from tools.visualization import draw_keypoints
-from core import CameraEditor, edit_camera
 
 
 def open_camera(config):
