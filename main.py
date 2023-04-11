@@ -3,98 +3,134 @@ Main program for motion-capture
 '''
 
 
-import time
+
 import cv2
 import numpy as np
+import argparse
+from concurrent.futures import ThreadPoolExecutor
 
-from core import MainWindow, edit_camera, open_camera
-from controller import Controller
-from network.udp import UDPServer
+from camera.camera import USB_Camera, Video
+from pose.mp_pose import PoseEstimatorMP
 from pose.pose3d import recover_pose_3d
+from tools.time_utils import TimeUtil
+
+from gui import MainWindow, get_device_config, open_editor
+from core import Controller, Pipeline, init_config
 from tools.visualization import DebugMonitor, draw_keypoints
+from tools.inspect import FPSCalculator
 
 
-CONFIG_PATH = 'config.json'
+def get_args():
+    parser = argparse.ArgumentParser()
 
+    parser.add_argument("--config_path", type=str, default="config.json")
+    args = parser.parse_args()
+
+    return args
 
 def main():
+    args = get_args()
+
     controller = Controller()
-    controller.load_config(CONFIG_PATH)
+    controller.load(args.config_path)
+
     window = MainWindow(controller)
     window.open()
     
     monitor = DebugMonitor()
 
-    while True:
-        t = time.time()
-        proj_matrices = []
-        keypoints2d_list = []
-        for camera in controller.cameras:
-            image = camera.get_image()
-            if image is None:
-                continue
+    keypoints2d_list = []
 
-            input_image = image.copy()
-            # person segmentation
-            if camera.segmentation is not None:
-                mask = camera.segmentation.process(input_image) 
-                input_image = (input_image * mask).astype(np.uint8)
+    # マルチスレッド
+    with ThreadPoolExecutor(max_workers=4) as pool:
+        while True:
+            FPSCalculator.start('main')
+            # 3d pose estimation
+            proj_matrices = [pipeline.camera.camera_setting.proj_matrix for pipeline in controller.pipelines]
+            future_keypoints3d = pool.submit(recover_pose_3d, proj_matrices, keypoints2d_list)
+            
+            t = TimeUtil.get_time()
+            # get images
+            future_images = []
+            for pipeline in controller.pipelines:
+                future = pool.submit(pipeline.camera.get_image)
+                future_images.append(future)
 
-            debug_image = input_image
             # 2d pose estimation
-            if controller.pose_estimator is not None:
-                keypoints = controller.pose_estimator.process(input_image) 
-                proj_matrix = camera.camera_setting.get_projection_matrix()
+            images = []
+            future_keypoints2d_list = []
+            for future_image, pipeline in zip(future_images, controller.pipelines): 
+                image = future_image.result()
+                images.append(image)
+                if pipeline.pose_estimator is not None:
+                    future = pool.submit(pipeline.pose_estimator.process, image)
+                    future_keypoints2d_list.append(future)
 
-                if keypoints is not None and proj_matrix is not None:
-                    keypoints2d_list.append(keypoints)
-                    proj_matrices.append(proj_matrix)
+            keypoints2d_list = []
+            for future_keypoints in future_keypoints2d_list:
+                keypoints2d = future_keypoints.result()
+                keypoints2d_list.append(keypoints2d)
 
-                if keypoints is not None:                    
-                    debug_image = draw_keypoints(debug_image, keypoints)    
+            # get 3d pose estimation result
+            keypoints3d = future_keypoints3d.result()
 
-            cv2.imshow(camera.name, debug_image)
+            if controller.isActive:
+                ret = controller.send(t, keypoints3d)
+                if ret:
+                    monitor.add_line(t)            
 
-        keypoints3d = recover_pose_3d(proj_matrices, keypoints2d_list) # 3d pose estimation
-        if controller.isActive:
-            ret = controller.send(t, keypoints3d)
-            if ret:
-                monitor.add_line(t)
-            #monitor.write(t, keypoints3d)
+            # debug
+            for pipeline, image, keypoints2d in zip(controller.pipelines, images, keypoints2d_list):
+                debug_image = draw_keypoints(image, keypoints2d)
+                cv2.imshow(pipeline.name, debug_image)
 
-        # space calibrator
-        #if calibrator.isActive:
-        #   calibrator.process(keypoints2d_list)
-            
-        # window
-        event, values = window.window.read(timeout=0)
-        if event == '-Add-':
-            camera = open_camera()
-            if not controller.exists(camera):
-                controller.add_camera(camera)
-                window.reload_camera_list()
-        if event == '-CameraList-Edit-':
-            _camera = window.get_selected_camera()
-            camera = edit_camera(_camera)
-            if camera is None: # None指定でカメラを削除
-                ret = controller.delete_camera(camera)
-            else: # カメラの設定を変更する
-                ret = controller.replace_camera(_camera, camera)
-            if ret:
-                window.reload_camera_list()
-        if event == '-ModelType-':
-            window.open_estimator()
-        if event == '-Start-':
-            window.start_capture()
-            monitor.open()
-            
-        if event is None:
-            cv2.destroyAllWindows()
-            break
+            # fps  
+            FPSCalculator.end('main')
+            t_exec = FPSCalculator.get_execution_time('main', duration=10)
+            print(f"\rFPS:{1/t_exec if t_exec > 0.001 else 0}", end='')
 
-        monitor.update()
-    #monitor.out()
-    controller.save_config(CONFIG_PATH)
+            # window
+            event, values = window.window.read(timeout=0)
+            if event == '-Add-':
+                # get device setting
+                camera_config = get_device_config()
+                if camera_config is not None:                
+                    config = init_config()
+                    config['camera'] = camera_config
+                    # check resources 
+                    if controller.exists(config):
+                        print("already exists")
+                    else:
+                        print("pipeline opened")
+                        pipeline = Pipeline(config)
+                        controller.add_pipeline(pipeline)
+                        window.reload_list()
+                        open_editor(pipeline) # initial setting
+            if event == '-List-Edit-':
+                pipeline = window.get_selected()
+                open_editor(pipeline)
+            if event == '-List-Delete-':   
+                pipeline = window.get_selected()         
+                controller.remove_pipeline(pipeline)
+                window.reload_list()
+                print('deleted')
+            if event == '-ModelType-':
+                window.set_pose_estimator()
+            if event == '-Start-':
+                window.start_capture()  
+            if event == 'Open Momitor':
+                pass          
+                
+            if event is None:
+                cv2.destroyAllWindows()
+                break
+
+            monitor.update()
+
+    for pipeline in controller.pipelines:
+        pipeline.camera.close()
+
+    controller.save(args.config_path)
     return
 
 
