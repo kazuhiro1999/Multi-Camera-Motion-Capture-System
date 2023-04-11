@@ -4,6 +4,8 @@ import time
 import cv2
 import numpy as np
 import PySimpleGUI as sg
+import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
 
 from network.udp import UDPClient
 
@@ -13,7 +15,7 @@ def draw_keypoints(image, keypoints2d, skeleton=None, th=0.2):
     debug_image = image.copy()
     for x, y, confidence in keypoints2d:
         if confidence >= th:
-            cv2.circle(debug_image, (int(x), int(y)), radius=1, color=(0,255,0), thickness=1)
+            cv2.circle(debug_image, (int(x), int(y)), radius=5, color=(0,255,0), thickness=5)
     if skeleton is None:
         return debug_image
 
@@ -24,6 +26,17 @@ def draw_keypoints(image, keypoints2d, skeleton=None, th=0.2):
             cv2.line(debug_image, (int(x1), int(y1)), (int(x2), int(y2)), color=(0,255,0), thickness=2)
 
     return debug_image
+
+
+def show_cameras(camera_settings):
+    fig = plt.figure()
+    ax = fig.add_subplot(111, projection='3d')
+
+    for camera_setting in camera_settings:
+        position = camera_setting.position
+        ax.scatter(position[0], position[2], position[1])
+
+    plt.show()
 
 
 class DebugMonitor:
